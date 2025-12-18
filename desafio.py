@@ -83,6 +83,11 @@ def criar_usuario(usuarios):
 
     print("=== Usuário criado com sucesso! ===")
 
+def buscar_conta (numero_conta, contas):
+    for conta in contas:
+        if conta["numero_conta"] == numero_conta: # verifica se o numero da conta bate
+            return conta # retorna a conta se encontrada
+    return None # retorna None se a conta não for encontrada
 
 def filtrar_usuario(cpf, usuarios):
     usuarios_filtrados = [usuario for usuario in usuarios if usuario["cpf"] == cpf]
@@ -106,11 +111,19 @@ def consultar_cliente(usuarios):
 
 def criar_conta(agencia, numero_conta, usuarios):
     cpf = input("Informe o CPF do usuário: ")
-    usuario = filtrar_usuario(cpf, usuarios)
+    usuario = filtrar_usuario(cpf, usuarios) # procura o usuario pelo cpf dentro da lista de usuarios
 
     if usuario:
         print("\n=== Conta criada com sucesso! ===")
-        return {"agencia": agencia, "numero_conta": numero_conta, "usuario": usuario}
+        
+        return {
+            "agencia": agencia, 
+            "numero_conta": numero_conta, 
+            "usuario": usuario,
+            "saldo": 0.0,
+            "extrato": "",
+            "numero_saques": 0
+            }
 
     print("\n@@@ Usuário não encontrado, fluxo de criação de conta encerrado! @@@")
 
@@ -130,10 +143,6 @@ def main():
     LIMITE_SAQUES = 3
     AGENCIA = "0001"
 
-    saldo = 0
-    limite = 500
-    extrato = ""
-    numero_saques = 0
     usuarios = []
     contas = []
 
@@ -141,24 +150,49 @@ def main():
         opcao = menu()
 
         if opcao == "d":
-            valor = float(input("Informe o valor do depósito: "))
+            
+            numero_conta = int(input("Informe o número da conta para depósito: "))
+            conta = buscar_conta(numero_conta, contas)
 
-            saldo, extrato = depositar(saldo, valor, extrato)
+            if conta:
+                valor = float(input("Informe o valor do depósito: "))
+                novo_saldo, novo_extrato = depositar(conta["saldo"], valor, conta["extrato"])
+
+                conta["saldo"] = novo_saldo
+                conta["extrato"] = novo_extrato
+            else:
+                print("\n@@@ Conta não encontrada! @@@")
 
         elif opcao == "s":
-            valor = float(input("Informe o valor do saque: "))
+            numero_conta = float(input("Informe o número da conta: "))
+            conta = buscar_conta(numero_conta, contas) # busca a conta pelo numero, o buscar_conta retorna a conta ou None, numero_conta é o input do usuario e o contas é a lista de contas
+            
+            if conta:
+                valor = float(input("Informe o valor do saque: "))
+            
+                novo_saldo, novo_extrato, novos_saques = sacar(
+                    saldo=conta["saldo"],
+                    valor=valor,
+                    extrato=conta["extrato"],
+                    limite=500,
+                    numero_saques=conta["numero_saques"],
+                    limite_saques=LIMITE_SAQUES,
+                )
 
-            saldo, extrato, numero_saques = sacar(
-                saldo=saldo,
-                valor=valor,
-                extrato=extrato,
-                limite=limite,
-                numero_saques=numero_saques,
-                limite_saques=LIMITE_SAQUES,
-            )
+                conta["saldo"] = novo_saldo
+                conta["extrato"] = novo_extrato
+                conta["numero_saques"] = novos_saques
+            else:
+                print("\n@@@ Conta não encontrada! @@@")
 
         elif opcao == "e":
-            exibir_extrato(saldo, extrato=extrato)
+            numero_conta = float(input("Informe o número da conta: "))
+            conta = buscar_conta(numero_conta, contas)
+
+            if conta:
+                exibir_extrato(conta["saldo"], extrato=conta["extrato"])
+            else:
+                print("\n@@@ Conta não encontrada! @@@")
 
         elif opcao == "nu":
             criar_usuario(usuarios)
